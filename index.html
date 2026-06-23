@@ -211,11 +211,80 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#071329;color:#fff;min-h
 const TARGET = new Date("2028-05-01T00:00:00");
 const START  = new Date("1987-09-01T00:00:00");
 
-function workdays(a, b) {
-  let c = 0, d = new Date(a);
-  while (d < b) { const w = d.getDay(); if (w > 0 && w < 6) c++; d.setDate(d.getDate()+1); }
-  return c;
+
+function easterMonday(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+
+  const easterSunday = new Date(year, month - 1, day);
+  easterSunday.setDate(easterSunday.getDate() + 1);
+  return easterSunday;
 }
+
+function getSlovenianHolidays(year) {
+  const holidays = new Set([
+    `${year}-01-01`,
+    `${year}-01-02`,
+    `${year}-02-08`,
+    `${year}-04-27`,
+    `${year}-05-01`,
+    `${year}-05-02`,
+    `${year}-06-25`,
+    `${year}-08-15`,
+    `${year}-10-31`,
+    `${year}-11-01`,
+    `${year}-12-25`,
+    `${year}-12-26`
+  ]);
+
+  const em = easterMonday(year);
+  holidays.add(
+    `${em.getFullYear()}-${String(em.getMonth() + 1).padStart(2, "0")}-${String(em.getDate()).padStart(2, "0")}`
+  );
+
+  return holidays;
+}
+
+function workdays(a, b) {
+  let count = 0;
+  let d = new Date(a);
+  const holidayCache = {};
+
+  while (d < b) {
+    const year = d.getFullYear();
+
+    if (!holidayCache[year]) {
+      holidayCache[year] = getSlovenianHolidays(year);
+    }
+
+    const key =
+      `${year}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    const weekday = d.getDay();
+
+    if (weekday > 0 && weekday < 6 && !holidayCache[year].has(key)) {
+      count++;
+    }
+
+    d.setDate(d.getDate() + 1);
+  }
+
+  return count;
+}
+
 function weekday(a, b, n) {
   let c = 0, d = new Date(a);
   while (d < b) { if (d.getDay() === n) c++; d.setDate(d.getDate()+1); }
